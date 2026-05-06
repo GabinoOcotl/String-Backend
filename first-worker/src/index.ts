@@ -1,64 +1,107 @@
+import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { DurableObject } from "cloudflare:workers";
 
-/**
- * Welcome to Cloudflare Workers! This is your first Durable Objects application.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your Durable Object in action
- * - Run `npm run deploy` to publish your application
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/durable-objects
- */
-
-/** A Durable Object's behavior is defined in an exported Javascript class */
-export class MyDurableObject extends DurableObject<Env> {
-	/**
-	 * The constructor is invoked once upon creation of the Durable Object, i.e. the first call to
-	 * 	`DurableObjectStub::get` for a given identifier (no-op constructors can be omitted)
-	 *
-	 * @param ctx - The interface for interacting with Durable Object state
-	 * @param env - The interface to reference bindings declared in wrangler.jsonc
-	 */
-	constructor(ctx: DurableObjectState, env: Env) {
-		super(ctx, env);
-	}
-
-	/**
-	 * The Durable Object exposes an RPC method sayHello which will be invoked when a Durable
-	 *  Object instance receives a request from a Worker via the same method invocation on the stub
-	 *
-	 * @param name - The name provided to a Durable Object instance from a Worker
-	 * @returns The greeting to be sent back to the Worker
-	 */
-	async sayHello(name: string): Promise<string> {
-		return `Hello, ${name}!`;
-	}
+// ─── Env bindings (must match wrangler.jsonc) ────────────────────────────────
+export interface Env {
+  DB: D1Database;                          // Cloudflare D1
+  BUCKET: R2Bucket;                        // Cloudflare R2
+  CHAT_ROOM: DurableObjectNamespace;       // Durable Object for realtime chat
+  SUPABASE_JWT_SECRET: string;             // Supabase Auth secret (env var)
+  RESEND_API_KEY: string;                  // Resend email (env var)
 }
 
-export default {
-	/**
-	 * This is the standard fetch handler for a Cloudflare Worker
-	 *
-	 * @param request - The request submitted to the Worker from the client
-	 * @param env - The interface to reference bindings declared in wrangler.jsonc
-	 * @param ctx - The execution context of the Worker
-	 * @returns The response to be sent back to the client
-	 */
-	async fetch(request, env, ctx): Promise<Response> {
-		// Create a stub to open a communication channel with the Durable Object
-		// instance named "foo".
-		//
-		// Requests from all Workers to the Durable Object instance named "foo"
-		// will go to a single remote Durable Object instance.
-		const stub = env.MY_DURABLE_OBJECT.getByName("foo");
+// ─── Durable Object (realtime chat — logic coming later) ─────────────────────
+export class ChatRoom extends DurableObject<Env> {
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+  }
 
-		// Call the `sayHello()` RPC method on the stub to invoke the method on
-		// the remote Durable Object instance.
-		const greeting = await stub.sayHello("world");
+  // WebSocket and chat logic will go here
+  async fetch(request: Request): Promise<Response> {
+    return new Response("ChatRoom placeholder", { status: 200 });
+  }
+}
 
-		return new Response(greeting);
-	},
-} satisfies ExportedHandler<Env>;
+// ─── Hono app ─────────────────────────────────────────────────────────────────
+const app = new Hono<{ Bindings: Env }>();
+
+app.use("*", cors());
+
+// Health check
+app.get("/", (c) => c.json({ status: "ok" }));
+
+// ─── Auth routes ──────────────────────────────────────────────────────────────
+const auth = app.basePath("/auth");
+
+auth.post("/register", async (c) => {
+  // Supabase Auth handles registration — call their API here later
+  return c.json({ message: "register placeholder" });
+});
+
+auth.post("/login", async (c) => {
+  return c.json({ message: "login placeholder" });
+});
+
+// ─── User routes ──────────────────────────────────────────────────────────────
+const users = app.basePath("/users");
+
+users.get("/:id", async (c) => {
+  const id = c.req.param("id");
+  const user = await c.env.DB.prepare("SELECT * FROM users WHERE id = ?")
+    .bind(id)
+    .first();
+  return c.json(user ?? { error: "User not found" });
+});
+
+// ─── Messages routes ──────────────────────────────────────────────────────────
+const messages = app.basePath("/messages");
+
+messages.get("/:roomId", async (c) => {
+  const roomId = c.req.param("roomId");
+  const { results } = await c.env.DB.prepare(
+    "SELECT * FROM messages WHERE room_id = ? ORDER BY created_at ASC"
+  )
+    .bind(roomId)
+    .all();
+  return c.json(results);
+});
+
+messages.post("/", async (c) => {
+  const { roomId, userId, text } = await c.req.json();
+  await c.env.DB.prepare(
+    "INSERT INTO messages (room_id, user_id, text) VALUES (?, ?, ?)"
+  )
+    .bind(roomId, userId, text)
+    .run();
+  return c.json({ success: true });
+});
+
+// ─── Chat (Durable Object) routes ─────────────────────────────────────────────
+const chat = app.basePath("/chat");
+
+chat.get("/:roomId", async (c) => {
+  const roomId = c.req.param("roomId");
+  const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(roomId));
+  return stub.fetch(c.req.raw);
+});
+
+// ─── File upload routes (R2) ──────────────────────────────────────────────────
+const files = app.basePath("/files");
+
+files.put("/:filename", async (c) => {
+  const filename = c.req.param("filename");
+  const body = await c.req.arrayBuffer();
+  await c.env.BUCKET.put(filename, body);
+  return c.json({ success: true, filename });
+});
+
+files.get("/:filename", async (c) => {
+  const filename = c.req.param("filename");
+  const object = await c.env.BUCKET.get(filename);
+  if (!object) return c.json({ error: "File not found" }, 404);
+  return new Response(object.body);
+});
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+export default app;
