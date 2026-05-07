@@ -10,7 +10,7 @@
 	"migrations": [
 		{
 			"new_sqlite_classes": [
-				"MyDurableObject"
+				"ChatRoom"
 			],
 			"tag": "v1"
 		}
@@ -29,6 +29,14 @@
 	"upload_source_maps": true,
 	"compatibility_flags": [
 		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "D1Database",
+			"database_name": "first-worker-db",
+			"database_id": "1213d740-3080-4d69-83b4-5f0c29c5c04d",
+			"remote": true
+		}
 	]
 	/**
 	 * Smart Placement
