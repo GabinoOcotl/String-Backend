@@ -18,11 +18,17 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"class_name": "MyDurableObject",
-				"name": "MY_DURABLE_OBJECT"
+				"class_name": "ChatRoom",
+				"name": "CHAT_ROOM"
 			}
 		]
 	},
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "Images"
+    }
+  ], 
 	"observability": {
 		"enabled": true
 	},
@@ -32,7 +38,7 @@
 	],
 	"d1_databases": [
 		{
-			"binding": "D1Database",
+			"binding": "DB",
 			"database_name": "first-worker-db",
 			"database_id": "1213d740-3080-4d69-83b4-5f0c29c5c04d",
 			"remote": true
