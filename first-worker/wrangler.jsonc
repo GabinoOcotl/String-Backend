@@ -26,7 +26,7 @@
   "r2_buckets": [
     {
       "binding": "BUCKET",
-      "bucket_name": "Images"
+      "bucket_name": "first-worker-images-dev"
     }
   ], 
 	"observability": {
