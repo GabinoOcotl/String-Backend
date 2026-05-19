@@ -1,15 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { DurableObject } from "cloudflare:workers";
+import type { Env } from "./env";
+import { requireAuth, type AuthUser } from "./middleware/auth";
 
-// ─── Env bindings (must match wrangler.jsonc) ────────────────────────────────
-export interface Env {
-  DB: D1Database;                          // Cloudflare D1
-  BUCKET: R2Bucket;                        // Cloudflare R2
-  CHAT_ROOM: DurableObjectNamespace;       // Durable Object for realtime chat
-  SUPABASE_JWT_SECRET: string;             // Supabase Auth secret (env var)
-  RESEND_API_KEY: string;                  // Resend email (env var)
-}
+export type { Env } from "./env";
 
 // ─── Durable Object (realtime chat — logic coming later) ─────────────────────
 export class ChatRoom extends DurableObject<Env> {
@@ -24,27 +19,22 @@ export class ChatRoom extends DurableObject<Env> {
 }
 
 // ─── Hono app ─────────────────────────────────────────────────────────────────
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
 
 app.use("*", cors());
 
 // Health check
 app.get("/", (c) => c.json({ status: "ok" }));
 
-// ─── Auth routes ──────────────────────────────────────────────────────────────
+// ─── Auth (login/signup live in the app via Supabase client) ─────────────────
 const auth = app.basePath("/auth");
 
-auth.post("/register", async (c) => {
-  // Supabase Auth handles registration — call their API here later
-  return c.json({ message: "register placeholder" });
-});
+/** Confirms the Bearer token is valid; use from the app after login. */
+auth.get("/me", requireAuth, (c) => c.json({ user: c.get("user") }));
 
-auth.post("/login", async (c) => {
-  return c.json({ message: "login placeholder" });
-});
-
-// ─── User routes ──────────────────────────────────────────────────────────────
+// ─── User routes (protected) ──────────────────────────────────────────────────
 const users = app.basePath("/users");
+users.use(requireAuth);
 
 users.get("/:id", async (c) => {
   const id = c.req.param("id");
@@ -54,8 +44,9 @@ users.get("/:id", async (c) => {
   return c.json(user ?? { error: "User not found" });
 });
 
-// ─── Messages routes ──────────────────────────────────────────────────────────
+// ─── Messages routes (protected) ───────────────────────────────────────────────
 const messages = app.basePath("/messages");
+messages.use(requireAuth);
 
 messages.get("/:roomId", async (c) => {
   const roomId = c.req.param("roomId");
@@ -68,7 +59,11 @@ messages.get("/:roomId", async (c) => {
 });
 
 messages.post("/", async (c) => {
-  const { roomId, userId, text } = await c.req.json();
+  const { roomId, text } = await c.req.json<{ roomId?: string; text?: string }>();
+  if (!roomId || !text) {
+    return c.json({ error: "roomId and text are required" }, 400);
+  }
+  const userId = c.get("user").sub;
   await c.env.DB.prepare(
     "INSERT INTO messages (room_id, user_id, text) VALUES (?, ?, ?)"
   )
@@ -77,8 +72,9 @@ messages.post("/", async (c) => {
   return c.json({ success: true });
 });
 
-// ─── Chat (Durable Object) routes ─────────────────────────────────────────────
+// ─── Chat (Durable Object) routes (protected) ─────────────────────────────────
 const chat = app.basePath("/chat");
+chat.use(requireAuth);
 
 chat.get("/:roomId", async (c) => {
   const roomId = c.req.param("roomId");
@@ -86,8 +82,9 @@ chat.get("/:roomId", async (c) => {
   return stub.fetch(c.req.raw);
 });
 
-// ─── File upload routes (R2) ──────────────────────────────────────────────────
+// ─── File upload routes (R2, protected) ───────────────────────────────────────
 const files = app.basePath("/files");
+files.use(requireAuth);
 
 files.put("/:filename", async (c) => {
   const filename = c.req.param("filename");

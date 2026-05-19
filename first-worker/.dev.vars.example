@@ -1,0 +1,2 @@
+SUPABASE_JWT_SECRET=your_supabase_jwt_secret_here
+RESEND_API_KEY=your_resend_api_key_here
