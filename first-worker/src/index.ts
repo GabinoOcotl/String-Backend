@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./env";
+import { sendEmail, ResendError, type SendEmailParams } from "./lib/resend";
 import { requireAuth, type AuthUser } from "./middleware/auth";
 
 export type { Env } from "./env";
@@ -98,6 +99,43 @@ files.get("/:filename", async (c) => {
   const object = await c.env.BUCKET.get(filename);
   if (!object) return c.json({ error: "File not found" }, 404);
   return new Response(object.body);
+});
+
+// ─── Email (Resend, protected) ───────────────────────────────────────────────
+const email = app.basePath("/email");
+email.use(requireAuth);
+
+/** Sends a test message via Resend to confirm API key and sender config. */
+email.post("/test", async (c) => {
+  const { to, subject } = await c.req.json<{ to?: string; subject?: string }>();
+  if (!to) {
+    return c.json({ error: "to is required" }, 400);
+  }
+
+  const apiKey = c.env.RESEND_API_KEY;
+  if (!apiKey) {
+    return c.json({ error: "Server misconfigured" }, 500);
+  }
+
+  const from = c.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
+
+  try {
+    const params: SendEmailParams = {
+      from,
+      to,
+      subject: subject ?? "String test email",
+      html: "<p>This is a test email from your String Worker.</p>",
+      text: "This is a test email from your String Worker.",
+    };
+    
+    const result = await sendEmail(apiKey, params);
+    return c.json({ success: true, id: result.id });
+  } catch (err) {
+    if (err instanceof ResendError) {
+      return c.json({ error: err.message }, 502);
+    }
+    return c.json({ error: "Failed to send email" }, 500);
+  }
 });
 
 // ─── Export ───────────────────────────────────────────────────────────────────
