@@ -4,13 +4,14 @@ This worker expects a Supabase JWT secret at runtime:
 
 - `SUPABASE_JWT_SECRET`
 
+Login, signup, and email (if enabled) are handled by **Supabase Auth** in the mobile app. The Worker only verifies JWTs on protected API routes.
+
 ## Local development
 
 Use `.dev.vars` (already ignored by git):
 
 ```env
 SUPABASE_JWT_SECRET=your_actual_secret_here
-RESEND_API_KEY=your_actual_key_here
 ```
 
 ## Cloudflare environments (staging/production)
@@ -19,10 +20,9 @@ Set secrets with Wrangler (run from `first-worker/`):
 
 ```bash
 npx wrangler secret put SUPABASE_JWT_SECRET
-npx wrangler secret put RESEND_API_KEY
 ```
 
-Wrangler will prompt for each secret value and store it securely for the worker.
+Wrangler will prompt for the secret value and store it securely for the worker.
 
 ## Verify quickly
 
@@ -36,7 +36,7 @@ Do not commit real secret values to source control.
 
 ## Protected API routes (step 3)
 
-Login and signup stay in the mobile app via `@supabase/supabase-js`. After sign-in, send the Supabase **access token** on every protected Worker request:
+After sign-in, send the Supabase **access token** on every protected Worker request:
 
 ```http
 Authorization: Bearer <session.access_token>
@@ -64,3 +64,7 @@ await fetch(`${WORKER_URL}/messages/room-1`, {
   headers: { Authorization: `Bearer ${token}` },
 });
 ```
+
+### Portfolio note: email confirmation
+
+To avoid custom domains and paid email, disable **Confirm email** in Supabase (Authentication → sign-up settings) so users can sign up with email/password without a confirmation message. Use Supabase’s built-in auth only; this Worker does not send mail.
