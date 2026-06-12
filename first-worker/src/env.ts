@@ -4,4 +4,5 @@ export interface Env {
   BUCKET: R2Bucket;
   CHAT_ROOM: DurableObjectNamespace;
   SUPABASE_JWT_SECRET: string;
+  ENROLLMENT_TERM_CODE: string;
 }

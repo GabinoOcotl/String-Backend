@@ -46,6 +46,9 @@
 	],
 	"triggers": {
 		"crons": ["0 */2 * * *"]
+	},
+	"vars": {
+		"ENROLLMENT_TERM_CODE": "1272"
 	}
 	/**
 	 * Smart Placement
