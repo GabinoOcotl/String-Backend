@@ -43,7 +43,10 @@
 			"database_id": "1213d740-3080-4d69-83b4-5f0c29c5c04d",
 			"remote": true
 		}
-	]
+	],
+	"triggers": {
+		"crons": ["0 */2 * * *"]
+	}
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

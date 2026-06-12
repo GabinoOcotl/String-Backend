@@ -3,6 +3,8 @@ import { cors } from "hono/cors";
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./env";
 import { requireAuth, type AuthUser } from "./middleware/auth";
+import { adminRoutes, classesRoutes } from "./routes/classes";
+import { runClassSync } from "./services/class-sync";
 
 export type { Env } from "./env";
 
@@ -100,5 +102,14 @@ files.get("/:filename", async (c) => {
   return new Response(object.body);
 });
 
+// ─── Classes routes (protected) ───────────────────────────────────────────────
+app.route("/classes", classesRoutes);
+app.route("/admin", adminRoutes);
+
 // ─── Export ───────────────────────────────────────────────────────────────────
-export default app;
+export default {
+  fetch: app.fetch,
+  scheduled: async (_event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
+    ctx.waitUntil(runClassSync(env));
+  },
+};
