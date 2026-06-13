@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./env";
 import { requireAuth, type AuthUser } from "./middleware/auth";
+import { globalRateLimit } from "./middleware/rate-limit";
 import { adminRoutes, classesRoutes } from "./routes/classes";
 import { runClassSync } from "./services/class-sync";
 
@@ -24,6 +25,7 @@ export class ChatRoom extends DurableObject<Env> {
 const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
 
 app.use("*", cors());
+app.use("*", globalRateLimit);
 
 // Health check
 app.get("/", (c) => c.json({ status: "ok" }));
