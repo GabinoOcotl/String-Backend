@@ -84,23 +84,23 @@ chat.get("/:roomId", async (c) => {
   return stub.fetch(c.req.raw);
 });
 
-// ─── File upload routes (R2, protected) ───────────────────────────────────────
-const files = app.basePath("/files");
-files.use(requireAuth);
-
-files.put("/:filename", async (c) => {
-  const filename = c.req.param("filename");
-  const body = await c.req.arrayBuffer();
-  await c.env.BUCKET.put(filename, body);
-  return c.json({ success: true, filename });
-});
-
-files.get("/:filename", async (c) => {
-  const filename = c.req.param("filename");
-  const object = await c.env.BUCKET.get(filename);
-  if (!object) return c.json({ error: "File not found" }, 404);
-  return new Response(object.body);
-});
+// ─── File upload routes (R2, protected) — disabled until R2 is configured ───
+// const files = app.basePath("/files");
+// files.use(requireAuth);
+//
+// files.put("/:filename", async (c) => {
+//   const filename = c.req.param("filename");
+//   const body = await c.req.arrayBuffer();
+//   await c.env.BUCKET.put(filename, body);
+//   return c.json({ success: true, filename });
+// });
+//
+// files.get("/:filename", async (c) => {
+//   const filename = c.req.param("filename");
+//   const object = await c.env.BUCKET.get(filename);
+//   if (!object) return c.json({ error: "File not found" }, 404);
+//   return new Response(object.body);
+// });
 
 // ─── Classes routes (protected) ───────────────────────────────────────────────
 app.route("/classes", classesRoutes);

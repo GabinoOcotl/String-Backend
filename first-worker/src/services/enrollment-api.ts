@@ -8,8 +8,13 @@ import type {
 const BASE_URL = "https://public.enroll.wisc.edu/api/search/v1";
 
 const DEFAULT_HEADERS = {
-  accept: "application/json",
+  accept: "application/json, text/plain, */*",
+  "accept-language": "en-US,en;q=0.9",
   "content-type": "application/json",
+  origin: "https://public.enroll.wisc.edu",
+  referer: "https://public.enroll.wisc.edu/search",
+  "user-agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
 } as const;
 
 export const DEFAULT_PAGE_SIZE = 50;
