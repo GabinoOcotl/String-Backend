@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { requireAuth, type AuthUser } from "../middleware/auth";
+import {
+  adminSyncRateLimit,
+  sectionsRefreshRateLimit,
+} from "../middleware/rate-limit";
 import { runClassSync } from "../services/class-sync";
 import { EnrollmentApiError } from "../services/enrollment-api";
 import {
@@ -137,34 +141,38 @@ classesRoutes.get("/:subject/:courseId", async (c) => {
 });
 
 /** Cache-through section details (1h TTL; ?refresh=true bypasses cache). */
-classesRoutes.get("/:subject/:courseId/sections", async (c) => {
-  const subject = c.req.param("subject");
-  const courseId = c.req.param("courseId");
-  const forceRefresh = c.req.query("refresh") === "true";
+classesRoutes.get(
+  "/:subject/:courseId/sections",
+  sectionsRefreshRateLimit,
+  async (c) => {
+    const subject = c.req.param("subject");
+    const courseId = c.req.param("courseId");
+    const forceRefresh = c.req.query("refresh") === "true";
 
-  try {
-    const result = await getCourseSections(c.env, subject, courseId, {
-      forceRefresh,
-    });
-    return c.json(result);
-  } catch (error) {
-    if (error instanceof SectionCacheError) {
-      const status = error.message.includes("not configured") ? 500 : 400;
-      return c.json({ error: error.message }, status);
+    try {
+      const result = await getCourseSections(c.env, subject, courseId, {
+        forceRefresh,
+      });
+      return c.json(result);
+    } catch (error) {
+      if (error instanceof SectionCacheError) {
+        const status = error.message.includes("not configured") ? 500 : 400;
+        return c.json({ error: error.message }, status);
+      }
+      if (error instanceof EnrollmentApiError) {
+        return c.json({ error: error.message }, 502);
+      }
+      throw error;
     }
-    if (error instanceof EnrollmentApiError) {
-      return c.json({ error: error.message }, 502);
-    }
-    throw error;
-  }
-});
+  },
+);
 
 export const adminRoutes = new Hono<AppEnv>();
 
 adminRoutes.use(requireAuth);
 
 /** Manual catalog sync trigger for dev/testing. */
-adminRoutes.post("/sync/classes", async (c) => {
+adminRoutes.post("/sync/classes", adminSyncRateLimit, async (c) => {
   try {
     const result = await runClassSync(c.env);
     return c.json(result);
