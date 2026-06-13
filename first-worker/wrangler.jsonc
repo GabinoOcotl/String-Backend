@@ -13,6 +13,15 @@
 				"ChatRoom"
 			],
 			"tag": "v1"
+		},
+		{
+			"tag": "v2",
+			"renamed_classes": [
+				{
+					"from": "MyDurableObject",
+					"to": "ChatRoom"
+				}
+			]
 		}
 	],
 	"durable_objects": {
@@ -23,12 +32,13 @@
 			}
 		]
 	},
-  "r2_buckets": [
-    {
-      "binding": "BUCKET",
-      "bucket_name": "first-worker-images-dev"
-    }
-  ], 
+	// R2 disabled until enabled in Cloudflare dashboard — restore when ready:
+	// "r2_buckets": [
+	// 	{
+	// 		"binding": "BUCKET",
+	// 		"bucket_name": "first-worker-images-dev"
+	// 	}
+	// ],
 	"observability": {
 		"enabled": true
 	},
