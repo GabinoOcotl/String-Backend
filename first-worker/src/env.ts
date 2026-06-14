@@ -7,4 +7,8 @@ export interface Env {
   RATE_LIMIT_KV: KVNamespace;
   SUPABASE_JWT_SECRET: string;
   ENROLLMENT_TERM_CODE: string;
+  /** Comma-separated Supabase user IDs allowed to call admin routes. */
+  ADMIN_USER_IDS?: string;
+  /** Comma-separated admin emails allowed to call admin routes. */
+  ADMIN_EMAILS?: string;
 }
