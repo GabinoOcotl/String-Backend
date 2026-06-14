@@ -55,3 +55,43 @@ export const requireAuth = createMiddleware<AuthEnv>(async (c, next) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 });
+
+function parseAllowlist(raw: string | undefined): Set<string> {
+  if (!raw?.trim()) return new Set();
+  return new Set(raw.split(",").map((entry) => entry.trim()).filter(Boolean));
+}
+
+function parseEmailAllowlist(raw: string | undefined): Set<string> {
+  if (!raw?.trim()) return new Set();
+  return new Set(
+    raw
+      .split(",")
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function isAdminUser(user: AuthUser, env: Env): boolean {
+  if (parseAllowlist(env.ADMIN_USER_IDS).has(user.sub)) {
+    return true;
+  }
+
+  const email = user.email?.trim().toLowerCase();
+  return email ? parseEmailAllowlist(env.ADMIN_EMAILS).has(email) : false;
+}
+
+/**
+ * Requires an authenticated user whose `sub` or `email` appears in
+ * `ADMIN_USER_IDS` / `ADMIN_EMAILS`. Must run after `requireAuth`.
+ */
+export const requireAdmin = createMiddleware<AuthEnv>(async (c, next) => {
+  if (!c.env.ADMIN_USER_IDS?.trim() && !c.env.ADMIN_EMAILS?.trim()) {
+    return c.json({ error: "Server misconfigured" }, 500);
+  }
+
+  if (!isAdminUser(c.get("user"), c.env)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  await next();
+});

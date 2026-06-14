@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
-import { requireAuth, type AuthUser } from "../middleware/auth";
+import { requireAdmin, requireAuth, type AuthUser } from "../middleware/auth";
 import {
   adminSyncRateLimit,
   sectionsRefreshRateLimit,
@@ -172,7 +172,7 @@ export const adminRoutes = new Hono<AppEnv>();
 adminRoutes.use(requireAuth);
 
 /** Manual catalog sync trigger for dev/testing. */
-adminRoutes.post("/sync/classes", adminSyncRateLimit, async (c) => {
+adminRoutes.post("/sync/classes", requireAdmin, adminSyncRateLimit, async (c) => {
   try {
     const result = await runClassSync(c.env);
     return c.json(result);

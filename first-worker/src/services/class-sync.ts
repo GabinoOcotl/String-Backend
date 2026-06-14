@@ -13,7 +13,7 @@ export const MAX_PAGES_PER_RUN = 40;
 const UPSERT_BATCH_SIZE = 25;
 
 /** Skip sync if a completed run finished within this window. */
-const SYNC_DEBOUNCE_MS = 2 * 60 * 60 * 1000;
+const SYNC_DEBOUNCE_MS = 6 * 60 * 60 * 1000;
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 1_000;
