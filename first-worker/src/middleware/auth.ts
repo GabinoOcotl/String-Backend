@@ -95,3 +95,15 @@ export const requireAdmin = createMiddleware<AuthEnv>(async (c, next) => {
 
   await next();
 });
+
+/**
+ * Requires the `:id` route param to match the authenticated user's `sub`.
+ * Must run after `requireAuth`.
+ */
+export const requireSelf = createMiddleware<AuthEnv>(async (c, next) => {
+  if (c.req.param("id") !== c.get("user").sub) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  await next();
+});

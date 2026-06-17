@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./env";
-import { requireAuth, type AuthUser } from "./middleware/auth";
+import { requireAuth, requireSelf, type AuthUser } from "./middleware/auth";
+import { assertRoomMember } from "./middleware/room-auth";
 import { strictCors } from "./middleware/cors";
 import { globalRateLimit } from "./middleware/rate-limit";
 import { validateMessageText } from "./lib/validation";
@@ -41,7 +42,7 @@ auth.get("/me", requireAuth, (c) => c.json({ user: c.get("user") }));
 const users = app.basePath("/users");
 users.use(requireAuth);
 
-users.get("/:id", async (c) => {
+users.get("/:id", requireSelf, async (c) => {
   const id = c.req.param("id");
   const user = await c.env.DB.prepare("SELECT * FROM users WHERE id = ?")
     .bind(id)
@@ -55,6 +56,9 @@ messages.use(requireAuth);
 
 messages.get("/:roomId", async (c) => {
   const roomId = c.req.param("roomId");
+  const denied = await assertRoomMember(c, roomId);
+  if (denied) return denied;
+
   const { results } = await c.env.DB.prepare(
     "SELECT * FROM messages WHERE room_id = ? ORDER BY created_at ASC"
   )
@@ -72,6 +76,10 @@ messages.post("/", async (c) => {
   if (!textResult.ok) {
     return c.json({ error: textResult.error }, 400);
   }
+
+  const denied = await assertRoomMember(c, roomId);
+  if (denied) return denied;
+
   const userId = c.get("user").sub;
   await c.env.DB.prepare(
     "INSERT INTO messages (room_id, user_id, text) VALUES (?, ?, ?)"
