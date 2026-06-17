@@ -1,9 +1,10 @@
 import { Hono } from "hono";
-import { cors } from "hono/cors";
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./env";
 import { requireAuth, type AuthUser } from "./middleware/auth";
+import { strictCors } from "./middleware/cors";
 import { globalRateLimit } from "./middleware/rate-limit";
+import { validateMessageText } from "./lib/validation";
 import { adminRoutes, classesRoutes } from "./routes/classes";
 import { runClassSync } from "./services/class-sync";
 
@@ -24,7 +25,7 @@ export class ChatRoom extends DurableObject<Env> {
 // ─── Hono app ─────────────────────────────────────────────────────────────────
 const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
 
-app.use("*", cors());
+app.use("*", strictCors());
 app.use("*", globalRateLimit);
 
 // Health check
@@ -64,14 +65,18 @@ messages.get("/:roomId", async (c) => {
 
 messages.post("/", async (c) => {
   const { roomId, text } = await c.req.json<{ roomId?: string; text?: string }>();
-  if (!roomId || !text) {
-    return c.json({ error: "roomId and text are required" }, 400);
+  if (!roomId) {
+    return c.json({ error: "roomId is required" }, 400);
+  }
+  const textResult = validateMessageText(text);
+  if (!textResult.ok) {
+    return c.json({ error: textResult.error }, 400);
   }
   const userId = c.get("user").sub;
   await c.env.DB.prepare(
     "INSERT INTO messages (room_id, user_id, text) VALUES (?, ?, ?)"
   )
-    .bind(roomId, userId, text)
+    .bind(roomId, userId, textResult.value)
     .run();
   return c.json({ success: true });
 });

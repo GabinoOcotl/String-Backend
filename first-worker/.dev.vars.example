@@ -1,3 +1,4 @@
 SUPABASE_JWT_SECRET=your_supabase_jwt_secret_here
 ADMIN_USER_IDS=
 ADMIN_EMAILS=
+ALLOWED_ORIGINS=http://localhost:8081,http://localhost:19006
