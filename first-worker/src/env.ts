@@ -11,4 +11,6 @@ export interface Env {
   ADMIN_USER_IDS?: string;
   /** Comma-separated admin emails allowed to call admin routes. */
   ADMIN_EMAILS?: string;
+  /** Comma-separated browser origins allowed for CORS (e.g. https://app.example.com). */
+  ALLOWED_ORIGINS?: string;
 }
