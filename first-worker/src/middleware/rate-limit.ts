@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import type { Context } from "hono";
 import type { Env } from "../env";
+import { logSecurityEvent, requestSecurityContext } from "../lib/security-log";
 import type { AuthUser } from "./auth";
 
 type RateLimitEnv = { Bindings: Env; Variables: { user: AuthUser } };
@@ -60,6 +61,13 @@ export const globalRateLimit = createMiddleware<{ Bindings: Env }>(
       key: clientIp(c),
     });
     if (!success) {
+      logSecurityEvent(
+        requestSecurityContext(c, {
+          type: "rate_limited",
+          status: 429,
+          reason: "global",
+        }),
+      );
       return tooManyRequests(c, 60);
     }
     await next();
@@ -81,9 +89,24 @@ export const sectionsRefreshRateLimit = createMiddleware<RateLimitEnv>(
       HOUR_SEC,
     );
     if (!allowed) {
+      logSecurityEvent(
+        requestSecurityContext(c, {
+          type: "rate_limited",
+          status: 429,
+          reason: "sections_refresh",
+        }),
+      );
       return tooManyRequests(c, retryAfter);
     }
+
     await next();
+    logSecurityEvent(
+      requestSecurityContext(c, {
+        type: "sections_refresh",
+        status: c.res.status,
+        reason: "refresh=true",
+      }),
+    );
   },
 );
 
@@ -97,6 +120,13 @@ export const adminSyncRateLimit = createMiddleware<RateLimitEnv>(
       HOUR_SEC,
     );
     if (!allowed) {
+      logSecurityEvent(
+        requestSecurityContext(c, {
+          type: "rate_limited",
+          status: 429,
+          reason: "admin_sync",
+        }),
+      );
       return tooManyRequests(c, retryAfter);
     }
     await next();
