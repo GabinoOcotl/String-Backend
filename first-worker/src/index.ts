@@ -5,6 +5,7 @@ import { requireAuth, requireSelf, type AuthUser } from "./middleware/auth";
 import { assertRoomMember } from "./middleware/room-auth";
 import { strictCors } from "./middleware/cors";
 import { globalRateLimit } from "./middleware/rate-limit";
+import { securityObservability } from "./middleware/security-observability";
 import { validateMessageText } from "./lib/validation";
 import { adminRoutes, classesRoutes } from "./routes/classes";
 import { runClassSync } from "./services/class-sync";
@@ -28,6 +29,7 @@ const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
 
 app.use("*", strictCors());
 app.use("*", globalRateLimit);
+app.use("*", securityObservability);
 
 // Health check
 app.get("/", (c) => c.json({ status: "ok" }));

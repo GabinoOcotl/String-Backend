@@ -13,6 +13,7 @@ import {
 } from "../lib/validation";
 import { runClassSync } from "../services/class-sync";
 import { EnrollmentApiError } from "../services/enrollment-api";
+import { logSecurityEvent } from "../lib/security-log";
 import {
   getCourseSections,
   SectionCacheError,
@@ -205,6 +206,14 @@ adminRoutes.post("/sync/classes", requireAdmin, adminSyncRateLimit, async (c) =>
         : error instanceof Error
           ? error.message
           : "Class sync failed";
+    logSecurityEvent({
+      event: "security",
+      type: "sync_failed",
+      timestamp: new Date().toISOString(),
+      termCode: c.env.ENROLLMENT_TERM_CODE ?? "unknown",
+      trigger: "manual",
+      error: message,
+    });
     return c.json({ error: message }, 500);
   }
 });

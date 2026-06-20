@@ -1,4 +1,5 @@
 import type { Env } from "../env";
+import { logSecurityEvent } from "../lib/security-log";
 import type { CourseSearchHit } from "../types/enrollment";
 import {
   DEFAULT_PAGE_SIZE,
@@ -332,6 +333,14 @@ export async function runClassSync(env: ClassSyncEnv): Promise<ClassSyncResult> 
     };
   } catch (error) {
     await markFailed(env.DB, termCode, error);
+    logSecurityEvent({
+      event: "security",
+      type: "sync_failed",
+      timestamp: new Date().toISOString(),
+      termCode,
+      trigger: "scheduled",
+      error: error instanceof Error ? error.message : String(error),
+    });
     console.error(`class-sync: failed for term ${termCode}`, error);
     throw error;
   }
