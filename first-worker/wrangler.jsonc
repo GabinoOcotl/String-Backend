@@ -79,7 +79,8 @@
 		"crons": ["0 */6 * * *"]
 	},
 	"vars": {
-		"ENROLLMENT_TERM_CODE": "1272"
+		"ENROLLMENT_TERM_CODE": "1272",
+		"SUPABASE_URL": "https://hyyzprnganweeebfytvu.supabase.co"
 	}
 	/**
 	 * Smart Placement

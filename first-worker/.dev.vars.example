@@ -1,3 +1,4 @@
+SUPABASE_URL=https://hyyzprnganweeebfytvu.supabase.co
 SUPABASE_JWT_SECRET=your_supabase_jwt_secret_here
 ADMIN_USER_IDS=
 ADMIN_EMAILS=

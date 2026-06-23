@@ -5,7 +5,9 @@ export interface Env {
   CHAT_ROOM: DurableObjectNamespace;
   RATE_LIMIT_GLOBAL: RateLimit;
   RATE_LIMIT_KV: KVNamespace;
-  SUPABASE_JWT_SECRET: string;
+  SUPABASE_JWT_SECRET?: string;
+  /** Supabase project URL — enables ES256 JWT verification via JWKS. */
+  SUPABASE_URL?: string;
   ENROLLMENT_TERM_CODE: string;
   /** Comma-separated Supabase user IDs allowed to call admin routes. */
   ADMIN_USER_IDS?: string;
