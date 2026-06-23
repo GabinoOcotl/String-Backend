@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import { jwtVerify } from "jose";
+import { createRemoteJWKSet, type JWTVerifyGetKey, jwtVerify } from "jose";
 import type { Env } from "../env";
 
 /** Claims we expose after verifying a Supabase access token. */
@@ -11,16 +11,46 @@ export type AuthUser = {
 
 type AuthEnv = { Bindings: Env; Variables: { user: AuthUser } };
 
+const jwksBySupabaseUrl = new Map<string, JWTVerifyGetKey>();
+
+function getSupabaseJwks(supabaseUrl: string): JWTVerifyGetKey {
+  const base = supabaseUrl.replace(/\/$/, "");
+  const cached = jwksBySupabaseUrl.get(base);
+  if (cached) {
+    return cached;
+  }
+
+  const jwks = createRemoteJWKSet(
+    new URL(`${base}/auth/v1/.well-known/jwks.json`),
+  );
+  jwksBySupabaseUrl.set(base, jwks);
+  return jwks;
+}
+
+async function verifySupabaseAccessToken(token: string, env: Env) {
+  const supabaseUrl = env.SUPABASE_URL?.trim();
+  if (supabaseUrl) {
+    return jwtVerify(token, getSupabaseJwks(supabaseUrl));
+  }
+
+  const secret = env.SUPABASE_JWT_SECRET?.trim();
+  if (!secret) {
+    throw new Error("missing_supabase_auth_config");
+  }
+
+  return jwtVerify(token, new TextEncoder().encode(secret), {
+    algorithms: ["HS256"],
+  });
+}
+
 /**
- * Verifies `Authorization: Bearer <access_token>` using Supabase JWT secret (HS256).
+ * Verifies `Authorization: Bearer <access_token>` using Supabase JWKS (ES256)
+ * when `SUPABASE_URL` is set, otherwise HS256 via `SUPABASE_JWT_SECRET`.
  * On success, sets `c.set("user", { sub, email?, role? })`.
- *
- * Applied via `.use(requireAuth)` on `/users`, `/messages`, `/chat`, `/files`
- * and on `GET /auth/me`. Public: `GET /` only.
  */
 export const requireAuth = createMiddleware<AuthEnv>(async (c, next) => {
-  const header = c.req.header("Authorization"); // get tocken that the frontend sned
-  if (!header?.startsWith("Bearer ")) { 
+  const header = c.req.header("Authorization");
+  if (!header?.startsWith("Bearer ")) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
@@ -29,15 +59,12 @@ export const requireAuth = createMiddleware<AuthEnv>(async (c, next) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const secret = c.env.SUPABASE_JWT_SECRET;
-  if (!secret) {
+  if (!c.env.SUPABASE_URL?.trim() && !c.env.SUPABASE_JWT_SECRET?.trim()) {
     return c.json({ error: "Server misconfigured" }, 500);
   }
 
   try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), { // verify token with JOSE
-      algorithms: ["HS256"],
-    });
+    const { payload } = await verifySupabaseAccessToken(token, c.env);
 
     const sub = payload.sub;
     if (!sub || typeof sub !== "string") {
@@ -50,8 +77,11 @@ export const requireAuth = createMiddleware<AuthEnv>(async (c, next) => {
       role: typeof payload.role === "string" ? payload.role : undefined,
     });
 
-    await next(); // initates the next thing todo
-  } catch {
+    await next();
+  } catch (err) {
+    if (err instanceof Error && err.message === "missing_supabase_auth_config") {
+      return c.json({ error: "Server misconfigured" }, 500);
+    }
     return c.json({ error: "Unauthorized" }, 401);
   }
 });
