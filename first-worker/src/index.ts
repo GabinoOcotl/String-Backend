@@ -8,6 +8,7 @@ import { globalRateLimit } from "./middleware/rate-limit";
 import { securityObservability } from "./middleware/security-observability";
 import { validateMessageText } from "./lib/validation";
 import { adminRoutes, classesRoutes } from "./routes/classes";
+import { roomsRoutes } from "./routes/rooms";
 import { runClassSync } from "./services/class-sync";
 
 export type { Env } from "./env";
@@ -118,6 +119,9 @@ chat.get("/:roomId", async (c) => {
 //   if (!object) return c.json({ error: "File not found" }, 404);
 //   return new Response(object.body);
 // });
+
+// ─── Rooms routes (protected) ─────────────────────────────────────────────────
+app.route("/rooms", roomsRoutes);
 
 // ─── Classes routes (protected) ───────────────────────────────────────────────
 app.route("/classes", classesRoutes);
