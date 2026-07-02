@@ -1,11 +1,11 @@
 import { Hono } from "hono";
-import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./env";
 import { requireAuth, requireSelf, type AuthUser } from "./middleware/auth";
 import { assertRoomMember } from "./middleware/room-auth";
 import { strictCors } from "./middleware/cors";
 import { globalRateLimit } from "./middleware/rate-limit";
 import { securityObservability } from "./middleware/security-observability";
+import { broadcastRoomMessage } from "./lib/notify-chat-room";
 import { validateMessageText } from "./lib/validation";
 import { adminRoutes, classesRoutes } from "./routes/classes";
 import { roomsRoutes } from "./routes/rooms";
@@ -13,18 +13,7 @@ import { runClassSync } from "./services/class-sync";
 import { createMessage, getRoomMessages } from "./services/message-service";
 
 export type { Env } from "./env";
-
-// ─── Durable Object (realtime chat — logic coming later) ─────────────────────
-export class ChatRoom extends DurableObject<Env> {
-  constructor(ctx: DurableObjectState, env: Env) {
-    super(ctx, env);
-  }
-
-  // WebSocket and chat logic will go here
-  async fetch(request: Request): Promise<Response> {
-    return new Response("ChatRoom placeholder", { status: 200 });
-  }
-}
+export { ChatRoom } from "./durable-objects/ChatRoom";
 
 // ─── Hono app ─────────────────────────────────────────────────────────────────
 const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
@@ -88,6 +77,13 @@ messages.post("/", async (c) => {
     roomId,
     textResult.value,
   );
+
+  c.executionCtx.waitUntil(
+    broadcastRoomMessage(c.env, roomId, message).catch((err) => {
+      console.error("Failed to broadcast message to ChatRoom", err);
+    }),
+  );
+
   return c.json(message);
 });
 
