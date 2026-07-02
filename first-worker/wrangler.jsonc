@@ -10,7 +10,7 @@
 	"migrations": [
 		{
 			"new_sqlite_classes": [
-				"ChatRoom"
+				"MyDurableObject"
 			],
 			"tag": "v1"
 		},
