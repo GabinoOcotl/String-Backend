@@ -10,6 +10,7 @@ import { validateMessageText } from "./lib/validation";
 import { adminRoutes, classesRoutes } from "./routes/classes";
 import { roomsRoutes } from "./routes/rooms";
 import { runClassSync } from "./services/class-sync";
+import { createMessage, getRoomMessages } from "./services/message-service";
 
 export type { Env } from "./env";
 
@@ -62,11 +63,8 @@ messages.get("/:roomId", async (c) => {
   const denied = await assertRoomMember(c, roomId);
   if (denied) return denied;
 
-  const { results } = await c.env.DB.prepare(
-    "SELECT * FROM messages WHERE room_id = ? ORDER BY created_at ASC"
-  )
-    .bind(roomId)
-    .all();
+  const user = c.get("user");
+  const results = await getRoomMessages(c.env.DB, roomId, user.sub);
   return c.json(results);
 });
 
@@ -83,13 +81,14 @@ messages.post("/", async (c) => {
   const denied = await assertRoomMember(c, roomId);
   if (denied) return denied;
 
-  const userId = c.get("user").sub;
-  await c.env.DB.prepare(
-    "INSERT INTO messages (room_id, user_id, text) VALUES (?, ?, ?)"
-  )
-    .bind(roomId, userId, textResult.value)
-    .run();
-  return c.json({ success: true });
+  const user = c.get("user");
+  const message = await createMessage(
+    c.env.DB,
+    { id: user.sub, email: user.email },
+    roomId,
+    textResult.value,
+  );
+  return c.json(message);
 });
 
 // ─── Chat (Durable Object) routes (protected) ─────────────────────────────────
@@ -98,6 +97,9 @@ chat.use(requireAuth);
 
 chat.get("/:roomId", async (c) => {
   const roomId = c.req.param("roomId");
+  const denied = await assertRoomMember(c, roomId);
+  if (denied) return denied;
+
   const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(roomId));
   return stub.fetch(c.req.raw);
 });
