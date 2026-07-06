@@ -3,6 +3,7 @@ import type { Env } from "../env";
 import { requireAuth, type AuthUser } from "../middleware/auth";
 import {
   joinSectionRoom,
+  leaveSectionRoom,
   listUserRooms,
   validateJoinSectionRoomInput,
 } from "../services/room-service";
@@ -59,4 +60,15 @@ roomsRoutes.post("/join", async (c) => {
 roomsRoutes.get("/", async (c) => {
   const rooms = await listUserRooms(c.env.DB, c.get("user").sub);
   return c.json(rooms);
+});
+
+/** Leave a section room (schedule removal). Idempotent — returns 204 even if not a member. */
+roomsRoutes.delete("/:roomId/membership", async (c) => {
+  const user = c.get("user");
+  await leaveSectionRoom(
+    c.env.DB,
+    { id: user.sub, email: user.email },
+    c.req.param("roomId"),
+  );
+  return c.body(null, 204);
 });

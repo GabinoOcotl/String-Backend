@@ -184,3 +184,20 @@ export async function listUserRooms(
     lastMessageAt: row.last_message_at,
   }));
 }
+
+/**
+ * Removes the caller's membership from a section room.
+ * Idempotent — safe when the room or membership row is already absent.
+ */
+export async function leaveSectionRoom(
+  db: D1Database,
+  user: { id: string; email?: string },
+  roomId: string,
+): Promise<void> {
+  await ensureUser(db, { id: user.id, email: user.email });
+
+  await db
+    .prepare("DELETE FROM room_members WHERE room_id = ? AND user_id = ?")
+    .bind(roomId, user.id)
+    .run();
+}
