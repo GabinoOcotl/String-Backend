@@ -48,13 +48,19 @@ async function verifySupabaseAccessToken(token: string, env: Env) {
  * when `SUPABASE_URL` is set, otherwise HS256 via `SUPABASE_JWT_SECRET`.
  * On success, sets `c.set("user", { sub, email?, role? })`.
  */
-export const requireAuth = createMiddleware<AuthEnv>(async (c, next) => {
+function extractAccessToken(c: { req: { header: (name: string) => string | undefined; query: (name: string) => string | undefined } }): string | null {
   const header = c.req.header("Authorization");
-  if (!header?.startsWith("Bearer ")) {
-    return c.json({ error: "Unauthorized" }, 401);
+  if (header?.startsWith("Bearer ")) {
+    const token = header.slice("Bearer ".length).trim();
+    if (token) return token;
   }
 
-  const token = header.slice("Bearer ".length).trim();
+  const queryToken = c.req.query("token")?.trim();
+  return queryToken || null;
+}
+
+export const requireAuth = createMiddleware<AuthEnv>(async (c, next) => {
+  const token = extractAccessToken(c);
   if (!token) {
     return c.json({ error: "Unauthorized" }, 401);
   }

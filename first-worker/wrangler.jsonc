@@ -55,7 +55,7 @@
 			"binding": "DB",
 			"database_name": "first-worker-db",
 			"database_id": "1213d740-3080-4d69-83b4-5f0c29c5c04d",
-			"remote": true
+      "remote": true
 		}
 	],
 	"ratelimits": [

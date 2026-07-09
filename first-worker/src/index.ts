@@ -13,7 +13,8 @@ import { runClassSync } from "./services/class-sync";
 import { createMessage, getRoomMessages } from "./services/message-service";
 
 export type { Env } from "./env";
-export { ChatRoom } from "./durable-objects/ChatRoom";
+import { ChatRoom } from "./durable-objects/ChatRoom";
+export { ChatRoom };
 
 // ─── Hono app ─────────────────────────────────────────────────────────────────
 const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
