@@ -65,7 +65,13 @@ export interface ClassMeeting {
   meetingTimeStart?: number;
   meetingTimeEnd?: number;
   meetingDays?: string | null;
-  building?: { buildingName: string; buildingCode?: string } | null;
+  building?: {
+    buildingName: string;
+    buildingCode?: string;
+    latitude?: number;
+    longitude?: number;
+    streetAddress?: string;
+  } | null;
   room?: string | null;
   [key: string]: unknown;
 }
