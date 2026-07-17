@@ -132,3 +132,26 @@ export const adminSyncRateLimit = createMiddleware<RateLimitEnv>(
     await next();
   },
 );
+
+/** Soft limit: 40 walking-route requests/hour per user (ORS free tier is 2k/day). */
+export const walkingRouteRateLimit = createMiddleware<RateLimitEnv>(
+  async (c, next) => {
+    const { allowed, retryAfter } = await checkFixedWindowLimit(
+      c.env.RATE_LIMIT_KV,
+      `walking-route:${c.get("user").sub}`,
+      40,
+      HOUR_SEC,
+    );
+    if (!allowed) {
+      logSecurityEvent(
+        requestSecurityContext(c, {
+          type: "rate_limited",
+          status: 429,
+          reason: "walking_route",
+        }),
+      );
+      return tooManyRequests(c, retryAfter);
+    }
+    await next();
+  },
+);

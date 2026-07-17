@@ -15,4 +15,6 @@ export interface Env {
   ADMIN_EMAILS?: string;
   /** Comma-separated browser origins allowed for CORS (e.g. https://app.example.com). */
   ALLOWED_ORIGINS?: string;
+  /** OpenRouteService API key for campus walking directions (secret). */
+  OPENROUTESERVICE_API_KEY?: string;
 }

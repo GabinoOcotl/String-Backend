@@ -9,6 +9,7 @@ import { broadcastRoomMessage } from "./lib/notify-chat-room";
 import { validateMessageText } from "./lib/validation";
 import { adminRoutes, classesRoutes } from "./routes/classes";
 import { roomsRoutes } from "./routes/rooms";
+import { routesRoutes } from "./routes/routes";
 import { runClassSync } from "./services/class-sync";
 import { createMessage, getRoomMessages } from "./services/message-service";
 
@@ -125,6 +126,9 @@ app.route("/rooms", roomsRoutes);
 // ─── Classes routes (protected) ───────────────────────────────────────────────
 app.route("/classes", classesRoutes);
 app.route("/admin", adminRoutes);
+
+// ─── Campus walking routes (protected; OpenRouteService + KV cache) ───────────
+app.route("/routes", routesRoutes);
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 export default {
