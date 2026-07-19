@@ -1,8 +1,12 @@
 CREATE TABLE IF NOT EXISTS users (
-  id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-  email      TEXT UNIQUE NOT NULL,
-  name       TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  id                   TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  email                TEXT UNIQUE NOT NULL,
+  name                 TEXT,
+  created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+  avatar_key           TEXT,
+  avatar_content_type  TEXT,
+  avatar_updated_at    TEXT,
+  avatar_size_bytes    INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS rooms (

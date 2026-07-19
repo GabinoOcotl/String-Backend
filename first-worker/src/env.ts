@@ -1,7 +1,10 @@
 // ─── Env bindings (must match wrangler.jsonc) ────────────────────────────────
 export interface Env {
   DB: D1Database;
-  // BUCKET: R2Bucket; // re-enable with r2_buckets in wrangler.jsonc
+  /** R2 bucket storing user profile photos (avatars). */
+  PROFILE_PHOTOS: R2Bucket;
+  /** Application-level profile photo storage cap in bytes (defaults to 8 GiB). */
+  PROFILE_PHOTO_STORAGE_QUOTA_BYTES?: string;
   CHAT_ROOM: DurableObjectNamespace;
   RATE_LIMIT_GLOBAL: RateLimit;
   RATE_LIMIT_KV: KVNamespace;

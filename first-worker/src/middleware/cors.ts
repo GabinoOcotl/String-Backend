@@ -18,8 +18,9 @@ export function strictCors(): MiddlewareHandler<{ Bindings: Env }> {
       if (!origin) return null;
       return allowed.includes(origin) ? origin : null;
     },
-    allowMethods: ["GET", "POST", "DELETE"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "PUT", "POST", "DELETE"],
+    allowHeaders: ["Content-Type", "Authorization", "If-None-Match"],
+    exposeHeaders: ["ETag"],
     maxAge: 86400,
   });
 }

@@ -8,10 +8,12 @@ import { securityObservability } from "./middleware/security-observability";
 import { broadcastRoomMessage } from "./lib/notify-chat-room";
 import { validateMessageText } from "./lib/validation";
 import { adminRoutes, classesRoutes } from "./routes/classes";
+import { profilePhotoRoutes } from "./routes/profile-photos";
 import { roomsRoutes } from "./routes/rooms";
 import { routesRoutes } from "./routes/routes";
 import { runClassSync } from "./services/class-sync";
 import { createMessage, getRoomMessages } from "./services/message-service";
+import { logProfilePhotoUsage } from "./services/profile-photo-service";
 
 export type { Env } from "./env";
 import { ChatRoom } from "./durable-objects/ChatRoom";
@@ -34,6 +36,9 @@ const auth = app.basePath("/auth");
 auth.get("/me", requireAuth, (c) => c.json({ user: c.get("user") }));
 
 // ─── User routes (protected) ──────────────────────────────────────────────────
+// Profile photo routes first so /me/photo and /:id/photo bind before /:id.
+app.route("/users", profilePhotoRoutes);
+
 const users = app.basePath("/users");
 users.use(requireAuth);
 
@@ -102,24 +107,6 @@ chat.get("/:roomId", async (c) => {
   return stub.fetch(c.req.raw);
 });
 
-// ─── File upload routes (R2, protected) — disabled until R2 is configured ───
-// const files = app.basePath("/files");
-// files.use(requireAuth);
-//
-// files.put("/:filename", async (c) => {
-//   const filename = c.req.param("filename");
-//   const body = await c.req.arrayBuffer();
-//   await c.env.BUCKET.put(filename, body);
-//   return c.json({ success: true, filename });
-// });
-//
-// files.get("/:filename", async (c) => {
-//   const filename = c.req.param("filename");
-//   const object = await c.env.BUCKET.get(filename);
-//   if (!object) return c.json({ error: "File not found" }, 404);
-//   return new Response(object.body);
-// });
-
 // ─── Rooms routes (protected) ─────────────────────────────────────────────────
 app.route("/rooms", roomsRoutes);
 
@@ -135,5 +122,10 @@ export default {
   fetch: app.fetch,
   scheduled: async (_event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
     ctx.waitUntil(runClassSync(env));
+    ctx.waitUntil(
+      logProfilePhotoUsage(env).catch((error) => {
+        console.error("Failed to collect profile photo storage usage", error);
+      }),
+    );
   },
 };
