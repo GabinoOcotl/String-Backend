@@ -50,6 +50,7 @@ Authorization: Bearer <session.access_token>
 | `GET/POST /messages/*` | Bearer required |
 | `GET /chat/:roomId` | Bearer required |
 | `GET/PUT /files/*` | Bearer required |
+| `POST /routes/walking` | Bearer required |
 
 `POST /messages` body: `{ "roomId", "text" }` only. The user id comes from the verified JWT (`sub`), not from the client body.
 

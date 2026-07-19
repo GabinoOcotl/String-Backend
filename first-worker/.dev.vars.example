@@ -3,3 +3,5 @@ SUPABASE_JWT_SECRET=your_supabase_jwt_secret_here
 ADMIN_USER_IDS=
 ADMIN_EMAILS=
 ALLOWED_ORIGINS=http://localhost:8081,http://localhost:19006
+# Free key from https://openrouteservice.org/dev/#/signup — leave blank to use straight lines
+OPENROUTESERVICE_API_KEY=
