@@ -7,7 +7,9 @@ export type SecurityEventType =
   | "rate_limited"
   | "server_error"
   | "sections_refresh"
-  | "sync_failed";
+  | "sync_failed"
+  | "profile_photo_upload"
+  | "profile_photo_delete";
 
 interface SecurityLogBase {
   event: "security";

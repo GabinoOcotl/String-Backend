@@ -6,10 +6,12 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "test": "tsx --test src/lib/image-validation.test.ts src/services/profile-photo-service.test.ts"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.5.2",
     "wrangler": "^4.88.0"
   },

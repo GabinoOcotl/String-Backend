@@ -32,13 +32,13 @@
 			}
 		]
 	},
-	// R2 disabled until enabled in Cloudflare dashboard — restore when ready:
-	// "r2_buckets": [
-	// 	{
-	// 		"binding": "BUCKET",
-	// 		"bucket_name": "first-worker-images-dev"
-	// 	}
-	// ],
+	"r2_buckets": [
+		{
+			"binding": "PROFILE_PHOTOS",
+			"bucket_name": "first-worker-profile-photos-dev",
+			"remote": true
+		}
+	],
 	"observability": {
 		"enabled": true,
 		"logs": {
@@ -55,7 +55,7 @@
 			"binding": "DB",
 			"database_name": "first-worker-db",
 			"database_id": "1213d740-3080-4d69-83b4-5f0c29c5c04d",
-      "remote": true
+			"remote": true
 		}
 	],
 	"ratelimits": [
@@ -76,10 +76,13 @@
 		}
 	],
 	"triggers": {
-		"crons": ["0 */6 * * *"]
+		"crons": [
+			"0 */6 * * *"
+		]
 	},
 	"vars": {
 		"ENROLLMENT_TERM_CODE": "1272",
+		"PROFILE_PHOTO_STORAGE_QUOTA_BYTES": "8589934592",
 		"SUPABASE_URL": "https://hyyzprnganweeebfytvu.supabase.co"
 	}
 	/**

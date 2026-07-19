@@ -155,3 +155,26 @@ export const walkingRouteRateLimit = createMiddleware<RateLimitEnv>(
     await next();
   },
 );
+
+/** Strict limit: 10 profile photo uploads/hour per authenticated user. */
+export const profilePhotoUploadRateLimit = createMiddleware<RateLimitEnv>(
+  async (c, next) => {
+    const { allowed, retryAfter } = await checkFixedWindowLimit(
+      c.env.RATE_LIMIT_KV,
+      `profile-photo-upload:${c.get("user").sub}`,
+      10,
+      HOUR_SEC,
+    );
+    if (!allowed) {
+      logSecurityEvent(
+        requestSecurityContext(c, {
+          type: "rate_limited",
+          status: 429,
+          reason: "profile_photo_upload",
+        }),
+      );
+      return tooManyRequests(c, retryAfter);
+    }
+    await next();
+  },
+);
